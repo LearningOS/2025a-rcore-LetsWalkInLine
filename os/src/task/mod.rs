@@ -17,6 +17,7 @@ mod task;
 use crate::loader::{get_app_data, get_num_app};
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
+use alloc::collections::btree_map::BTreeMap;
 use alloc::vec::Vec;
 use lazy_static::*;
 use switch::__switch;
@@ -46,6 +47,8 @@ struct TaskManagerInner {
     tasks: Vec<TaskControlBlock>,
     /// id of current `Running` task
     current_task: usize,
+    /// counts for times of sys call
+    stask_syscalls_counts: BTreeMap<(usize, usize), usize>,
 }
 
 lazy_static! {
@@ -64,6 +67,7 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
+                    stask_syscalls_counts: BTreeMap::new(),
                 })
             },
         }
@@ -201,4 +205,32 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 /// Change the current 'Running' task's program break
 pub fn change_program_brk(size: i32) -> Option<usize> {
     TASK_MANAGER.change_current_program_brk(size)
+}
+
+/// Count the usage times of system calls in the current task
+/// and return the specific usage times at the same time
+pub fn count_syscalls(syscall_id: usize) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current_task = inner.current_task;
+
+    inner
+        .stask_syscalls_counts
+        .entry((current_task, syscall_id))
+        .and_modify(|x| *x += 1)
+        .or_insert(1);
+
+    //事实上最后会自动调用drop方法，不必显式调用
+    // drop(inner);
+}
+
+/// Get the usage times of system calls in the current task
+/// for the use of sys_trace
+pub fn get_syscalls_count(syscall_id: usize) -> usize {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current_task = inner.current_task;
+
+    *inner
+        .stask_syscalls_counts
+        .entry((current_task, syscall_id))
+        .or_insert(0)
 }
