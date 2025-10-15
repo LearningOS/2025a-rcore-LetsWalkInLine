@@ -15,6 +15,7 @@ mod switch;
 mod task;
 
 use crate::loader::{get_app_data, get_num_app};
+use crate::mm::{MapPermission, VirtAddr};
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::collections::btree_map::BTreeMap;
@@ -233,4 +234,29 @@ pub fn get_syscalls_count(syscall_id: usize) -> usize {
         .stask_syscalls_counts
         .entry((current_task, syscall_id))
         .or_insert(0)
+}
+
+/// Get the memory set of current task
+pub fn current_memoryset_insert_framed_area(
+    start_va: VirtAddr,
+    end_va: VirtAddr,
+    permission: MapPermission,
+) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current_task = inner.current_task;
+
+    inner.tasks[current_task]
+        .memory_set
+        .insert_framed_area(start_va, end_va, permission);
+}
+
+/// Unmap the virtual pages in [start_va, new_end) of the current task.
+/// Returns true on success, false if any page in the range is not mapped.
+pub fn current_memoryset_unmap_range(start_va: VirtAddr, new_end: VirtAddr) -> bool {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current_task = inner.current_task;
+
+    inner.tasks[current_task]
+        .memory_set
+        .unmap_range(start_va, new_end)
 }
