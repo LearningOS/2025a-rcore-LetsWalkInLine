@@ -134,3 +134,9 @@ pub fn frame_allocator_test() {
     drop(v);
     println!("frame_allocator_test passed!");
 }
+
+/// tell if the physical memory is still sufficient
+pub fn is_frame_available() -> bool {
+    let fa = FRAME_ALLOCATOR.exclusive_access();
+    !(fa.current == fa.end && fa.recycled.is_empty())
+}
