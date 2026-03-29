@@ -11,7 +11,7 @@ use crate::{
         add_task, current_task, current_user_token, exit_current_and_run_next,
         suspend_current_and_run_next, TaskControlBlock,
     },
-    timer::{get_time, get_time_ms},
+    timer::{get_time, get_time_us},
 };
 
 #[repr(C)]
@@ -120,7 +120,7 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
         (ts as usize + core::mem::size_of::<usize>()) as *mut usize,
     );
     *sec = get_time();
-    *usec = get_time_ms();
+    *usec = get_time_us();
     0
 }
 

@@ -30,9 +30,9 @@ impl TaskManager {
         let que = &mut self.ready_queue;
         let mut min_stride_index = 0;
         for i in 0..que.len() {
-            if que[i].inner_exclusive_access().stride
-                < que[min_stride_index].inner_exclusive_access().stride
-            {
+            let current_stride = que[i].inner_exclusive_access().stride;
+            let min_stride = que[min_stride_index].inner_exclusive_access().stride;
+            if current_stride < min_stride {
                 min_stride_index = i;
             }
         }
